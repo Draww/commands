@@ -23,6 +23,7 @@
 
 package co.aikar.commands;
 
+import co.aikar.commands.apachecommonslang.ApacheCommonsLangUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -191,6 +192,8 @@ public class CommandCompletions<C extends CommandCompletionContext> {
             String last = completions[completions.length - 1];
             if (last.startsWith("repeat@")) {
                 completion = last;
+            } else if (argIndex >= completions.length && cmd.parameters[cmd.parameters.length - 1].consumesRest) {
+                completion = last;
             }
         }
 
@@ -230,7 +233,8 @@ public class CommandCompletions<C extends CommandCompletionContext> {
             CommandOperationContext<?> ctx = CommandManager.getCurrentCommandOperationContext();
             return ctx.enumCompletionValues;
         }
-        if (completion.startsWith("repeat@")) {
+        boolean repeat = completion.startsWith("repeat@");
+        if (repeat) {
             completion = completion.substring(6);
         }
         completion = manager.getCommandReplacements().replace(completion);
@@ -252,6 +256,23 @@ public class CommandCompletions<C extends CommandCompletionContext> {
                 try {
                     //noinspection unchecked
                     Collection<String> completions = handler.getCompletions(context);
+
+                    //Handle completions with more than one word:
+                    if (!repeat && completions != null
+                            && command.parameters[command.parameters.length - 1].consumesRest
+                            && args.length > ACFPatterns.SPACE.split(command.complete).length) {
+                        String start = String.join(" ", args);
+                        completions = completions.stream()
+                                .map(s -> {
+                                    if (s != null && s.split(" ").length >= args.length && ApacheCommonsLangUtil.startsWithIgnoreCase(s, start)) {
+                                        String[] completionArgs = s.split(" ");
+                                        return String.join(" ", Arrays.copyOfRange(completionArgs, args.length - 1, completionArgs.length));
+                                    } else {
+                                        return s;
+                                    }
+                                }).collect(Collectors.toList());
+                    }
+
                     if (completions != null) {
                         allCompletions.addAll(completions);
                         continue;

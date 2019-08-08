@@ -271,13 +271,13 @@ public class BukkitCommandManager extends CommandManager<
             knownCommands.remove(key);
         }
         knownCommands.remove(plugin + ":" + key);
+        registeredCommands.remove(key);
     }
 
     public void unregisterCommands() {
-        for (Map.Entry<String, BukkitRootCommand> entry : registeredCommands.entrySet()) {
-            unregisterCommand(entry.getValue());
+        while (!registeredCommands.isEmpty()) {
+            unregisterCommand(registeredCommands.values().toArray(new BukkitRootCommand[]{})[0]);
         }
-        this.registeredCommands.clear();
     }
 
 
